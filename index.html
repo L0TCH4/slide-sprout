@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Slide Sprout｜テーマを入れるだけでAIスライド用プロンプトを自動生成</title>
+    <meta name="description" content="テーマとスライド数を入力するだけで、ChatGPT・Claude・Geminiなどの対話型AIでスライドを作るためのプロンプトを自動生成。作成したコードはそのままブラウザでプレビュー・編集できます。">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Slide Sprout">
+    <meta property="og:title" content="Slide Sprout｜AIスライド作成ツール">
+    <meta property="og:description" content="テーマを入れるだけで、AIスライド作成用のプロンプトを自動生成。">
+    <meta name="theme-color" content="#4a4cf0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <main class="card">
+        <header class="card-header">
+            <h1>Slide Sprout</h1>
+            <h2>テーマを入れるだけで、AIスライド作成用のプロンプトを自動生成します。</h2>
+        </header>
+
+        <form id="prompt-form" class="form">
+            <div class="field">
+                <label for="theme">テーマを入力してください</label>
+                <input id="theme" type="text" placeholder="例：新商品の販売戦略" aria-describedby="theme-error">
+                <p id="theme-error" class="error" role="alert" hidden></p>
+            </div>
+
+            <div class="field">
+                <label for="slides">スライド数を入力してください</label>
+                <input id="slides" type="number" min="1" max="50" inputmode="numeric" placeholder="例：10" aria-describedby="slides-error">
+                <p id="slides-error" class="error" role="alert" hidden></p>
+            </div>
+
+            <button type="submit">プロンプトを作成</button>
+        </form>
+
+        <section id="result" class="result" hidden>
+            <label for="result-text">作成されたプロンプト</label>
+            <textarea id="result-text" readonly rows="8"></textarea>
+            <button type="button" id="copy-button">コピーする</button>
+            <p>
+                この文章を好きな対話型AI(ChatGPT,Claude,Gemini,Copilot等)に送信し、出力が得られたら下のボタンをクリックしてください。
+            </p>
+            <button onclick="location.href='editor.html'">編集画面へ</button>
+        </section>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>

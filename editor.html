@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>HTMLライブエディタ｜Slide Sprout</title>
+<meta name="description" content="AIが出力したHTMLコードを貼り付けて、その場でプレビュー・編集できるエディタです。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+    --bg: #e8ebff;
+    --surface: #ffffff;
+    --ink: #181b4a;
+    --muted: #5c6094;
+    --line: #d6daf5;
+    --field: #f6f7ff;
+    --accent: #4a4cf0;
+    --accent-dark: #3335c9;
+    --accent-2: #ff7a66;
+    --on-accent: #ffffff;
+    --glow1: #c9ceff;
+    --glow2: #ffd9d2;
+    --shadow: rgba(74, 76, 240, 0.35);
+    --radius: 24px;
+    --font: "Zen Kaku Gothic New", "Hiragino Sans", "Yu Gothic", "Meiryo", sans-serif;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, "Courier New", monospace;
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+        --bg: #11133a; --surface: #1c1f52; --ink: #eceeff; --muted: #a5a9dd;
+        --line: #343878; --field: #15174a; --accent: #8c8eff; --accent-dark: #a6a8ff;
+        --on-accent: #11133a; --glow1: #23277a; --glow2: #4a2a3a; --shadow: rgba(0, 0, 0, 0.5);
+        color-scheme: dark;
+    }
+}
+:root[data-theme="dark"] {
+    --bg: #11133a; --surface: #1c1f52; --ink: #eceeff; --muted: #a5a9dd;
+    --line: #343878; --field: #15174a; --accent: #8c8eff; --accent-dark: #a6a8ff;
+    --on-accent: #11133a; --glow1: #23277a; --glow2: #4a2a3a; --shadow: rgba(0, 0, 0, 0.5);
+    color-scheme: dark;
+}
+html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+*, *::before, *::after { box-sizing: border-box; }
+body {
+    margin: 0;
+    min-height: 100vh;
+    padding: 24px 16px;
+    font-family: var(--font);
+    color: var(--ink);
+    background:
+        radial-gradient(60vmax 60vmax at 90% -10%, var(--glow1) 0%, transparent 60%),
+        radial-gradient(50vmax 50vmax at -10% 110%, var(--glow2) 0%, transparent 55%),
+        var(--bg);
+    -webkit-font-smoothing: antialiased;
+}
+.card {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 40px 32px 32px;
+    background: var(--surface);
+    border-radius: var(--radius);
+    box-shadow: 0 1px 2px rgba(24, 27, 74, 0.06), 0 24px 60px -20px var(--shadow);
+    position: relative;
+    overflow: hidden;
+    animation: rise 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
+}
+.card::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 6px;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+}
+h1 { margin: 0 0 12px; font-size: clamp(1.6rem, 5vw, 2.25rem); font-weight: 900; line-height: 1.25; letter-spacing: -0.01em; }
+h2 { margin: 0 0 28px; font-size: 0.95rem; font-weight: 500; line-height: 1.7; color: var(--muted); }
+
+.toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 16px; }
+.spacer { flex: 1; }
+button {
+    font: inherit; font-size: 0.9rem; font-weight: 700;
+    padding: 10px 16px; border-radius: 12px; cursor: pointer;
+    color: var(--accent); background: transparent; border: 1.5px solid var(--accent);
+    transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+}
+button:hover { background: color-mix(in srgb, var(--accent) 12%, transparent); }
+button:focus-visible, textarea:focus-visible { outline: 3px solid var(--accent-2); outline-offset: 3px; }
+button[aria-pressed="true"], .tab[aria-selected="true"] { background: var(--accent); color: var(--on-accent); }
+.tabs { display: none; gap: 6px; }
+
+.panes { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.pane { display: grid; grid-template-rows: auto 1fr; gap: 8px; min-width: 0; }
+.pane > label, .pane > .label { font-size: 0.9rem; font-weight: 700; }
+textarea {
+    width: 100%; height: 60vh; min-height: 320px; resize: vertical;
+    padding: 14px 16px; font-family: var(--mono); font-size: 0.85rem; line-height: 1.7;
+    color: var(--ink); background: var(--field);
+    border: 1.5px solid var(--line); border-radius: 14px; tab-size: 2;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 22%, transparent); }
+iframe {
+    width: 100%; height: 60vh; min-height: 320px;
+    background: #fff; border: 1.5px solid var(--line); border-radius: 14px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+button.primary { background: var(--accent); color: var(--on-accent); }
+button.primary:hover { background: var(--accent-dark); }
+button[hidden] { display: none; }
+.hint { margin: 14px 0 0; font-size: 0.8rem; color: var(--muted); line-height: 1.7; }
+.fullscreen {
+    position: fixed; inset: 0; z-index: 100;
+    display: flex; flex-direction: column;
+    background: var(--surface);
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.fullscreen[hidden] { display: none; }
+.fullscreen-bar { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-bottom: 1px solid var(--line); }
+.fullscreen-bar span { flex: 1; font-size: 0.9rem; font-weight: 700; }
+.fullscreen iframe { flex: 1; height: auto; min-height: 0; border: none; border-radius: 0; }
+.collapse { display: none; margin: 10px 16px; align-self: flex-end; }
+.pane-preview.expanded {
+    position: fixed; inset: 0; z-index: 100;
+    display: flex; flex-direction: column; gap: 0;
+    background: var(--surface);
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.pane-preview.expanded .label { display: none; }
+.pane-preview.expanded .collapse { display: block; }
+.pane-preview.expanded iframe { flex: 1; height: auto; min-height: 0; border: none; border-radius: 0; }
+
+@keyframes rise { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+@media (max-width: 860px) {
+    .card { padding: 32px 20px 24px; }
+    .tabs { display: flex; }
+    .panes { grid-template-columns: 1fr; }
+    [data-view="code"] .pane-preview, [data-view="preview"] .pane-code { display: none; }
+    .pane > label, .pane > .label { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
+</head>
+<body>
+<main class="card" id="app" data-view="code">
+    <h1>HTMLエディタ</h1>
+    <h2>AIからの出力を「コード」のところにペーストしてください。プレビューと編集ができます。</h2>
+
+    <div class="toolbar">
+        <div class="tabs" role="tablist">
+            <button class="tab" role="tab" data-view="code" aria-selected="true">コード</button>
+            <button type="button" id="preview-expand">編集</button>
+            <button type="button" id="fullscreen-open">プレビュー</button>
+        </div>
+        <span class="spacer"></span>
+        <button type="button" id="export" class="primary" hidden>HTMLでエクスポート</button>
+    </div>
+
+    <div class="panes">
+        <section class="pane pane-code">
+            <label for="code">HTMLコード</label>
+            <textarea id="code" spellcheck="false" autocapitalize="off" autocomplete="off" placeholder="ここにコードをペーストしてください…"></textarea>
+        </section>
+        <section class="pane pane-preview">
+            <span class="label">プレビュー（文字をクリックして編集）</span>
+            <button type="button" id="preview-collapse" class="collapse">全画面を閉じる</button>
+            <iframe id="preview" title="プレビュー" sandbox="allow-scripts"></iframe>
+        </section>
+    </div>
+
+    <p class="hint">プレビューの文字を編集すると、コードも自動で更新されます（インデントは整形し直されます）。スクリプトはプレビュー内で実行されます。実行後の状態（カウンターの数字など）も、文字を編集した時点でコードに反映されます。</p>
+</main>
+
+<div id="fullscreen" class="fullscreen" role="dialog" aria-label="全画面プレビュー" hidden>
+    <div class="fullscreen-bar">
+        <span>プレビュー</span>
+        <button type="button" id="fullscreen-close">閉じる</button>
+    </div>
+    <iframe id="fullscreen-frame" title="全画面プレビュー" sandbox="allow-scripts"></iframe>
+</div>
+
+<script>
+const sample = ``;
+
+const app = document.getElementById("app");
+const code = document.getElementById("code");
+const frame = document.getElementById("preview");
+const copyBtn = document.getElementById("copy");
+let timer;
+
+// プレビュー内で動く小さなプログラム：文字を編集可能にし、編集内容を親ページへ送る
+const bridge = "(" + function () {
+    var body = document.body;
+    if (!body) return;
+    body.setAttribute("contenteditable", "true");
+    var t;
+    function send() {
+        var clone = document.documentElement.cloneNode(true);
+        clone.querySelectorAll("script[data-bridge]").forEach(function (el) { el.remove(); });
+        var b = clone.querySelector("body");
+        if (b) b.removeAttribute("contenteditable");
+        parent.postMessage({ type: "html-live-editor", html: "<!DOCTYPE html>\n" + clone.outerHTML }, "*");
+    }
+    document.addEventListener("input", function () {
+        clearTimeout(t);
+        t = setTimeout(send, 150);
+    });
+} + ")();";
+
+function render() {
+    frame.srcdoc = code.value + "\n<script data-bridge>" + bridge + "<" + "/script>";
+}
+
+// プレビューでの編集内容をコード欄へ反映
+window.addEventListener("message", (event) => {
+    if (event.source !== frame.contentWindow) return;
+    const data = event.data;
+    if (!data || data.type !== "html-live-editor" || typeof data.html !== "string") return;
+    code.value = data.html;
+});
+
+code.addEventListener("input", () => {
+    clearTimeout(timer);
+    timer = setTimeout(render, 200);
+});
+
+function setView(view) {
+    app.dataset.view = view;
+    document.querySelectorAll(".tab").forEach((tab) => {
+        tab.setAttribute("aria-selected", String(tab.dataset.view === view));
+    });
+}
+document.querySelectorAll(".tab").forEach((tab) => {
+    tab.addEventListener("click", () => setView(tab.dataset.view));
+});
+
+// HTMLでエクスポート（保存できる環境でのみボタンを表示）
+const exportBtn = document.getElementById("export");
+(window.claude ? window.claude.use("downloads") : Promise.resolve(null)).then((downloads) => {
+    if (!downloads) return;
+    exportBtn.hidden = false;
+    exportBtn.addEventListener("click", async () => {
+        try {
+            await downloads.save({ filename: "page.html", data: code.value });
+            exportBtn.textContent = "エクスポートしました";
+        } catch (error) {
+            if (error && error.code === "declined") return;
+            exportBtn.textContent = "エクスポートできませんでした";
+        }
+        setTimeout(() => { exportBtn.textContent = "HTMLでエクスポート"; }, 2000);
+    });
+}).catch(() => {});
+
+const fullscreen = document.getElementById("fullscreen");
+const fullscreenFrame = document.getElementById("fullscreen-frame");
+const fullscreenOpen = document.getElementById("fullscreen-open");
+const fullscreenClose = document.getElementById("fullscreen-close");
+function openFullscreen() {
+    fullscreenFrame.srcdoc = code.value;
+    fullscreen.hidden = false;
+    document.body.style.overflow = "hidden";
+    fullscreenClose.focus();
+}
+function closeFullscreen() {
+    fullscreen.hidden = true;
+    fullscreenFrame.srcdoc = "";
+    document.body.style.overflow = "";
+    fullscreenOpen.focus();
+}
+fullscreenOpen.addEventListener("click", openFullscreen);
+fullscreenClose.addEventListener("click", closeFullscreen);
+document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !fullscreen.hidden) closeFullscreen();
+});
+
+const previewPane = document.querySelector(".pane-preview");
+const expandBtn = document.getElementById("preview-expand");
+const collapseBtn = document.getElementById("preview-collapse");
+
+function expandPreview() {
+    setView("preview");
+    previewPane.classList.add("expanded");
+    document.body.style.overflow = "hidden";
+    collapseBtn.focus();
+}
+function collapsePreview() {
+    previewPane.classList.remove("expanded");
+    document.body.style.overflow = "";
+    expandBtn.focus();
+}
+expandBtn.addEventListener("click", expandPreview);
+collapseBtn.addEventListener("click", collapsePreview);
+document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && previewPane.classList.contains("expanded")) collapsePreview();
+});
+
+code.value = sample;
+render();
+</script>
+</body>
+</html>
